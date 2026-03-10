@@ -108,11 +108,11 @@ const Analytics = () => {
             </div>
 
             <div className="charts-grid">
-                <div className="chart-card"><div className="chart-card-header"><h3 className="chart-card-title">Completed vs Created</h3></div>
-                    <ResponsiveContainer width="100%" height={300}><BarChart data={weekly?.weeklyData || []}><CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" /><XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} /><YAxis stroke="var(--text-muted)" fontSize={12} /><Tooltip content={<ChartTooltip />} /><Bar dataKey="completed" fill="#00b894" name="Completed" radius={[4, 4, 0, 0]} /><Bar dataKey="created" fill="#6c5ce7" name="Created" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
+                <div className="chart-card"><div className="chart-card-header"><h3 className="chart-card-title">Completed vs Total</h3></div>
+                    <ResponsiveContainer width="100%" height={300}><BarChart data={weekly?.weeklyData || []}><CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" /><XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} /><YAxis stroke="var(--text-muted)" fontSize={12} /><Tooltip content={<ChartTooltip />} /><Bar dataKey="completed" fill="#00b894" name="Completed" radius={[4, 4, 0, 0]} /><Bar dataKey="total" fill="#6c5ce7" name="Total" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
                 </div>
                 <div className="chart-card"><div className="chart-card-header"><h3 className="chart-card-title">Weekly Trend</h3></div>
-                    <ResponsiveContainer width="100%" height={300}><LineChart data={weekly?.weeklyData || []}><CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" /><XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} /><YAxis stroke="var(--text-muted)" fontSize={12} /><Tooltip content={<ChartTooltip />} /><Line type="monotone" dataKey="completed" stroke="#6c5ce7" strokeWidth={3} dot={{ r: 5, fill: '#6c5ce7' }} name="Completed" /><Line type="monotone" dataKey="created" stroke="#00cec9" strokeWidth={2} dot={{ r: 4, fill: '#00cec9' }} strokeDasharray="5 5" name="Created" /></LineChart></ResponsiveContainer>
+                    <ResponsiveContainer width="100%" height={300}><LineChart data={weekly?.weeklyData || []}><CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" /><XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} /><YAxis stroke="var(--text-muted)" fontSize={12} /><Tooltip content={<ChartTooltip />} /><Line type="monotone" dataKey="completed" stroke="#6c5ce7" strokeWidth={3} dot={{ r: 5, fill: '#6c5ce7' }} name="Completed" /><Line type="monotone" dataKey="total" stroke="#00cec9" strokeWidth={2} dot={{ r: 4, fill: '#00cec9' }} strokeDasharray="5 5" name="Total" /></LineChart></ResponsiveContainer>
                 </div>
             </div>
 

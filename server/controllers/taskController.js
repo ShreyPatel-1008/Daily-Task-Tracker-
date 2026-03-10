@@ -82,7 +82,7 @@ exports.createTask = async (req, res) => {
             priority: priority || 'MEDIUM',
             category: category || 'General',
             dueDate: dueDate || null,
-            isDaily: isDaily || false,
+            isDaily: isDaily !== undefined ? isDaily : true,
             userId: req.userId
         });
 

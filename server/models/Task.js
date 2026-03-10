@@ -39,7 +39,7 @@ const taskSchema = new mongoose.Schema({
     },
     isDaily: {
         type: Boolean,
-        default: false
+        default: true
     },
     userId: {
         type: mongoose.Schema.Types.ObjectId,

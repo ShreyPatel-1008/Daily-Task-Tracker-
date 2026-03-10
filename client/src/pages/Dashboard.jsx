@@ -101,7 +101,7 @@ const Dashboard = () => {
                                 Productivity score
                             </div>
                             <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: 4 }}>
-                                Based on completed vs created work this week
+                                Based on daily tasks completed this week
                             </div>
                         </div>
                     </div>
@@ -116,7 +116,6 @@ const Dashboard = () => {
                         <div className="stat-card-icon purple"><BarChart3 size={22} /></div>
                     </div>
                     <div className="stat-card-value">{stats?.total || 0}</div>
-                    <div className="stat-card-footer">+{stats?.todayCreated || 0} created today</div>
                 </div>
 
                 <div className="stat-card green" style={{ animationDelay: '0.1s' }}>
@@ -189,7 +188,7 @@ const Dashboard = () => {
                             <YAxis stroke="var(--text-muted)" fontSize={12} />
                             <Tooltip content={<CustomTooltip />} />
                             <Bar dataKey="completed" fill="#00b894" name="Completed" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="created" fill="#6c5ce7" name="Created" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="total" fill="#6c5ce7" name="Total" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

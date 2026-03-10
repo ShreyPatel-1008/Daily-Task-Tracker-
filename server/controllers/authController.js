@@ -98,6 +98,10 @@ exports.googleLogin = async (req, res) => {
     try {
         const { token } = req.body;
 
+        if (!token) {
+            return res.status(400).json({ message: 'No token provided' });
+        }
+
         const ticket = await client.verifyIdToken({
             idToken: token,
             audience: process.env.GOOGLE_CLIENT_ID
@@ -140,7 +144,8 @@ exports.googleLogin = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error(error);
+        console.error('Google Login Error:', error.message);
         res.status(401).json({ message: 'Invalid Google Token' });
     }
 };
+

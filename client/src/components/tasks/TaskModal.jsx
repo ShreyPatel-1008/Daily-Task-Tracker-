@@ -10,7 +10,7 @@ const TaskModal = ({ task, onClose, onSave }) => {
         priority: task?.priority || 'MEDIUM',
         category: task?.category || 'General',
         dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-        isDaily: task?.isDaily || false
+        isDaily: task ? (task.isDaily ?? true) : true
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -130,8 +130,8 @@ const TaskModal = ({ task, onClose, onSave }) => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                                 <RefreshCw size={18} style={{ color: formData.isDaily ? 'var(--accent-primary-light)' : 'var(--text-muted)' }} />
                                 <div>
-                                    <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>Daily Task</div>
-                                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>Resets to "Not Started" every day at 4:00 AM</div>
+                                    <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>Repeat Daily</div>
+                                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>{formData.isDaily ? 'Resets to "Not Started" every day at 4:00 AM' : 'One-time task — will not repeat'}</div>
                                 </div>
                             </div>
                             <div style={{

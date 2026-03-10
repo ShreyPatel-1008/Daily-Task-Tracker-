@@ -1,22 +1,15 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard,
     CheckSquare,
     BarChart3,
     Calendar,
-    LogOut,
     StickyNote,
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen }) => {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+    const { user } = useAuth();
 
     const navItems = [
         { path: '/', icon: <LayoutDashboard />, label: 'Dashboard' },
@@ -48,20 +41,16 @@ const Sidebar = ({ isOpen }) => {
                         <span>{item.label}</span>
                     </NavLink>
                 ))}
-
-                <span className="sidebar-section-title" style={{ marginTop: 'auto' }}>
-                    Account
-                </span>
-                <button className="sidebar-link" onClick={handleLogout}>
-                    <LogOut />
-                    <span>Logout</span>
-                </button>
             </nav>
 
             {user && (
                 <div className="sidebar-user">
                     <div className="sidebar-user-avatar">
-                        {user.name?.charAt(0).toUpperCase()}
+                        {user.avatar ? (
+                            <img src={user.avatar} alt={user.name} className="sidebar-user-avatar-img" />
+                        ) : (
+                            user.name?.charAt(0).toUpperCase()
+                        )}
                     </div>
                     <div className="sidebar-user-info">
                         <div className="sidebar-user-name">{user.name}</div>
@@ -74,3 +63,4 @@ const Sidebar = ({ isOpen }) => {
 };
 
 export default Sidebar;
+

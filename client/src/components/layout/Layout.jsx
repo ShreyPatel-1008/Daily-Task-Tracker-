@@ -1,25 +1,45 @@
-import { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import { Menu, Sun, Moon } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, Sun, Moon, LogOut, User, ChevronDown } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
-const PAGE_TITLES = {
-    '/': 'Dashboard',
-    '/tasks': 'Tasks',
-    '/analytics': 'Analytics',
-    '/calendar': 'Calendar',
-    '/notes': 'Notes',
+const PAGE_META = {
+    '/': { title: 'Dashboard', subtitle: 'Your productivity at a glance' },
+    '/tasks': { title: 'Tasks', subtitle: 'Manage and track your tasks' },
+    '/analytics': { title: 'Analytics', subtitle: 'Insights into your progress' },
+    '/calendar': { title: 'Calendar', subtitle: 'Plan your schedule' },
+    '/notes': { title: 'Notes', subtitle: 'Quick thoughts & ideas' },
 };
 
 const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const profileRef = useRef(null);
     const location = useLocation();
-    const { user } = useAuth();
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
 
-    const currentTitle = PAGE_TITLES[location.pathname] || 'TaskFlow';
+    const meta = PAGE_META[location.pathname] || { title: 'TaskFlow', subtitle: '' };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (profileRef.current && !profileRef.current.contains(e.target)) {
+                setIsProfileOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleLogout = () => {
+        setIsProfileOpen(false);
+        logout();
+        navigate('/login');
+    };
 
     return (
         <div className={`app-layout ${isSidebarOpen ? 'sidebar-open' : ''}`}>
@@ -35,9 +55,9 @@ const Layout = () => {
                         >
                             <Menu size={18} />
                         </button>
-                        <div>
-                            <div className="topbar-title">{currentTitle}</div>
-                            <div className="topbar-subtitle">Stay on top of your work</div>
+                        <div className="topbar-title-group">
+                            <div className="topbar-title">{meta.title}</div>
+                            {meta.subtitle && <div className="topbar-subtitle">{meta.subtitle}</div>}
                         </div>
                     </div>
                     <div className="topbar-right">
@@ -46,18 +66,48 @@ const Layout = () => {
                             className="theme-toggle-btn"
                             onClick={toggleTheme}
                             aria-label="Toggle theme"
+                            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                         >
                             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                         </button>
                         {user && (
-                            <div className="topbar-user">
-                                <div className="topbar-user-avatar">
-                                    {user.name?.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="topbar-user-info">
-                                    <div className="topbar-user-name">{user.name}</div>
-                                    <div className="topbar-user-email">{user.email}</div>
-                                </div>
+                            <div className="topbar-profile" ref={profileRef}>
+                                <button
+                                    className="topbar-profile-trigger"
+                                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                    aria-label="User menu"
+                                >
+                                    <div className="topbar-user-avatar">
+                                        {user.avatar ? (
+                                            <img src={user.avatar} alt={user.name} className="topbar-user-avatar-img" />
+                                        ) : (
+                                            user.name?.charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                    <ChevronDown size={14} className={`topbar-chevron ${isProfileOpen ? 'open' : ''}`} />
+                                </button>
+                                {isProfileOpen && (
+                                    <div className="topbar-dropdown">
+                                        <div className="topbar-dropdown-header">
+                                            <div className="topbar-dropdown-avatar">
+                                                {user.avatar ? (
+                                                    <img src={user.avatar} alt={user.name} className="topbar-dropdown-avatar-img" />
+                                                ) : (
+                                                    user.name?.charAt(0).toUpperCase()
+                                                )}
+                                            </div>
+                                            <div className="topbar-dropdown-info">
+                                                <span className="topbar-dropdown-name">{user.name}</span>
+                                                <span className="topbar-dropdown-email">{user.email}</span>
+                                            </div>
+                                        </div>
+                                        <div className="topbar-dropdown-divider" />
+                                        <button className="topbar-dropdown-item" onClick={handleLogout}>
+                                            <LogOut size={16} />
+                                            <span>Sign out</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

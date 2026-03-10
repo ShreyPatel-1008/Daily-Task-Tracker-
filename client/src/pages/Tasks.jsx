@@ -180,10 +180,29 @@ const Tasks = () => {
             {loading ? (
                 <div className="loading-spinner"><div className="spinner" /></div>
             ) : tasks.length > 0 ? (
-                <div className="task-list">
-                    {tasks.map(task => (
-                        <TaskCard key={task._id} task={task} onEdit={handleEdit} onDelete={handleDelete} />
-                    ))}
+                <div className="notion-table-container">
+                    <div className="notion-table-header">
+                        <div className="notion-col-task" style={{ paddingLeft: '8px' }}>
+                            <span style={{ marginRight: '6px', opacity: 0.7 }}>Aa</span> Task
+                        </div>
+                        <div className="notion-col-status">
+                            <span style={{ marginRight: '6px', opacity: 0.7 }}>📋</span> Status
+                        </div>
+                        <div className="notion-col-priority">
+                            <span style={{ marginRight: '6px', opacity: 0.7 }}>🔼</span> Priority
+                        </div>
+                        <div className="notion-col-due">
+                            <span style={{ marginRight: '6px', opacity: 0.7 }}>📅</span> Due Date
+                        </div>
+                        <div className="notion-col-actions" style={{ justifyContent: 'center' }}>
+                            <span style={{ opacity: 0.7 }}>+ ⋯</span>
+                        </div>
+                    </div>
+                    <div className="notion-table-body">
+                        {tasks.map((task, index) => (
+                            <TaskCard key={task._id} task={task} index={index + 1} onEdit={handleEdit} onDelete={handleDelete} />
+                        ))}
+                    </div>
                 </div>
             ) : (
                 <div className="empty-state">

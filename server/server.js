@@ -16,9 +16,23 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Connect to database, seed default user, start cron jobs
-connectDB().then(() => {
+connectDB().then(async () => {
     seedDatabase();
     initDailyResetCron();
+
+    // One-time migration: mark existing tasks as daily so they persist across days
+    try {
+        const Task = require('./models/Task');
+        const result = await Task.updateMany(
+            { isDaily: { $ne: true } },
+            { $set: { isDaily: true } }
+        );
+        if (result.modifiedCount > 0) {
+            console.log(`🔄 Migrated ${result.modifiedCount} existing tasks to daily mode`);
+        }
+    } catch (err) {
+        // Non-critical — skip silently
+    }
 });
 
 // Rate limiting

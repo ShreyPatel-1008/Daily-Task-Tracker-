@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const TimeEntry = require('../models/TimeEntry');
+const DailyHistory = require('../models/DailyHistory');
 
 // Dashboard stats
 exports.getDashboardStats = async (req, res) => {
@@ -27,11 +28,6 @@ exports.getDashboardStats = async (req, res) => {
             completedAt: { $gte: today, $lt: tomorrow }
         });
 
-        const todayCreated = await Task.countDocuments({
-            userId,
-            createdAt: { $gte: today, $lt: tomorrow }
-        });
-
         // Category distribution
         const categoryDistribution = await Task.aggregate([
             { $match: { userId: req.user._id } },
@@ -52,7 +48,6 @@ exports.getDashboardStats = async (req, res) => {
             notStarted,
             completionPercentage,
             todayCompleted,
-            todayCreated,
             categoryDistribution,
             priorityDistribution
         });
@@ -70,39 +65,68 @@ exports.getWeeklyAnalytics = async (req, res) => {
         startOfWeek.setDate(now.getDate() - now.getDay());
         startOfWeek.setHours(0, 0, 0, 0);
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0];
+
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const weeklyData = [];
+
+        // Get daily history for this week (covers past days)
+        const historyRecords = await DailyHistory.find({
+            userId,
+            date: { $gte: startOfWeek }
+        });
+
+        // Group history by date
+        const historyByDate = {};
+        historyRecords.forEach(h => {
+            const dateKey = h.date.toISOString().split('T')[0];
+            if (!historyByDate[dateKey]) historyByDate[dateKey] = { total: 0, completed: 0 };
+            historyByDate[dateKey].total++;
+            if (h.wasCompleted) historyByDate[dateKey].completed++;
+        });
+
+        // Total daily tasks for the user (for today's counts)
+        const totalDailyTasks = await Task.countDocuments({ userId, isDaily: true });
 
         for (let i = 0; i < 7; i++) {
             const dayStart = new Date(startOfWeek);
             dayStart.setDate(startOfWeek.getDate() + i);
             const dayEnd = new Date(dayStart);
             dayEnd.setDate(dayStart.getDate() + 1);
+            const dateStr = dayStart.toISOString().split('T')[0];
 
-            const [completed, created, total] = await Promise.all([
-                Task.countDocuments({ userId, completedAt: { $gte: dayStart, $lt: dayEnd } }),
-                Task.countDocuments({ userId, createdAt: { $gte: dayStart, $lt: dayEnd } }),
-                Task.countDocuments({ userId, createdAt: { $lt: dayEnd } })
-            ]);
+            let totalForDay, completedForDay;
+
+            if (dateStr === todayStr) {
+                // Today: use live task data
+                totalForDay = totalDailyTasks;
+                completedForDay = await Task.countDocuments({
+                    userId, isDaily: true, status: 'COMPLETED'
+                });
+            } else if (dayStart < today) {
+                // Past day: use DailyHistory
+                const dayHistory = historyByDate[dateStr];
+                totalForDay = dayHistory ? dayHistory.total : 0;
+                completedForDay = dayHistory ? dayHistory.completed : 0;
+            } else {
+                // Future day: no data yet
+                totalForDay = 0;
+                completedForDay = 0;
+            }
 
             weeklyData.push({
                 day: days[i],
-                date: dayStart.toISOString().split('T')[0],
-                completed,
-                created,
-                total
+                date: dateStr,
+                completed: completedForDay,
+                total: totalForDay
             });
         }
 
-        // Weekly productivity score
-        const weekCompleted = await Task.countDocuments({
-            userId,
-            completedAt: { $gte: startOfWeek }
-        });
-        const weekTotal = await Task.countDocuments({
-            userId,
-            createdAt: { $gte: startOfWeek }
-        });
+        // Weekly productivity score: completed / total across all days this week
+        const weekCompleted = weeklyData.reduce((sum, d) => sum + d.completed, 0);
+        const weekTotal = weeklyData.reduce((sum, d) => sum + d.total, 0);
         const productivityScore = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
 
         // Weekly time tracked
@@ -129,6 +153,7 @@ exports.getWeeklyAnalytics = async (req, res) => {
             weekTotal
         });
     } catch (error) {
+        console.error('Weekly analytics error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -145,54 +170,75 @@ exports.getMonthlyAnalytics = async (req, res) => {
         const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59);
         const daysInMonth = endOfMonth.getDate();
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0];
+
+        // Get daily history for this month
+        const historyRecords = await DailyHistory.find({
+            userId,
+            date: { $gte: startOfMonth, $lte: endOfMonth }
+        });
+
+        // Group history by date
+        const historyByDate = {};
+        historyRecords.forEach(h => {
+            const dateKey = h.date.toISOString().split('T')[0];
+            if (!historyByDate[dateKey]) historyByDate[dateKey] = { total: 0, completed: 0 };
+            historyByDate[dateKey].total++;
+            if (h.wasCompleted) historyByDate[dateKey].completed++;
+        });
+
+        const totalDailyTasks = await Task.countDocuments({ userId, isDaily: true });
         const monthlyData = [];
 
         for (let day = 1; day <= daysInMonth; day++) {
             const dayStart = new Date(year, month, day);
-            const dayEnd = new Date(year, month, day + 1);
+            const dateStr = dayStart.toISOString().split('T')[0];
 
-            const [completed, created] = await Promise.all([
-                Task.countDocuments({ userId, completedAt: { $gte: dayStart, $lt: dayEnd } }),
-                Task.countDocuments({ userId, createdAt: { $gte: dayStart, $lt: dayEnd } })
-            ]);
+            let totalForDay, completedForDay;
+
+            if (dateStr === todayStr) {
+                totalForDay = totalDailyTasks;
+                completedForDay = await Task.countDocuments({
+                    userId, isDaily: true, status: 'COMPLETED'
+                });
+            } else if (dayStart < today) {
+                const dayHistory = historyByDate[dateStr];
+                totalForDay = dayHistory ? dayHistory.total : 0;
+                completedForDay = dayHistory ? dayHistory.completed : 0;
+            } else {
+                totalForDay = 0;
+                completedForDay = 0;
+            }
 
             monthlyData.push({
                 day,
-                date: dayStart.toISOString().split('T')[0],
-                completed,
-                created
+                date: dateStr,
+                completed: completedForDay,
+                total: totalForDay
             });
         }
 
-        // Monthly status distribution
+        // Monthly status distribution (current tasks)
         const statusDistribution = await Task.aggregate([
-            {
-                $match: {
-                    userId,
-                    createdAt: { $gte: startOfMonth, $lte: endOfMonth }
-                }
-            },
+            { $match: { userId } },
             { $group: { _id: '$status', count: { $sum: 1 } } }
         ]);
 
-        // Monthly totals
-        const monthCompleted = await Task.countDocuments({
-            userId,
-            completedAt: { $gte: startOfMonth, $lte: endOfMonth }
-        });
-        const monthCreated = await Task.countDocuments({
-            userId,
-            createdAt: { $gte: startOfMonth, $lte: endOfMonth }
-        });
+        // Monthly totals from the data we built
+        const monthCompleted = monthlyData.reduce((sum, d) => sum + d.completed, 0);
+        const monthTotal = monthlyData.reduce((sum, d) => sum + d.total, 0);
 
         res.json({
             monthlyData,
             statusDistribution,
             monthCompleted,
-            monthCreated,
-            productivityScore: monthCreated > 0 ? Math.round((monthCompleted / monthCreated) * 100) : 0
+            monthTotal,
+            productivityScore: monthTotal > 0 ? Math.round((monthCompleted / monthTotal) * 100) : 0
         });
     } catch (error) {
+        console.error('Monthly analytics error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
