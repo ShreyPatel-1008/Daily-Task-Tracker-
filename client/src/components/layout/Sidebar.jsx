@@ -1,14 +1,16 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
 import {
-    LayoutDashboard, CheckSquare, BarChart3, Calendar,
-    LogOut, Sun, Moon, Flame, Clock, StickyNote
+    LayoutDashboard,
+    CheckSquare,
+    BarChart3,
+    Calendar,
+    LogOut,
+    StickyNote,
 } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen }) => {
     const { user, logout } = useAuth();
-    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -25,7 +27,7 @@ const Sidebar = () => {
     ];
 
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
             <div className="sidebar-logo">
                 <div className="sidebar-logo-icon">⚡</div>
                 <h1>TaskFlow</h1>
@@ -33,11 +35,13 @@ const Sidebar = () => {
 
             <nav className="sidebar-nav">
                 <span className="sidebar-section-title">Main Menu</span>
-                {navItems.map(item => (
+                {navItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
-                        className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                        className={({ isActive }) =>
+                            `sidebar-link ${isActive ? 'active' : ''}`
+                        }
                         end={item.path === '/'}
                     >
                         {item.icon}
@@ -45,11 +49,9 @@ const Sidebar = () => {
                     </NavLink>
                 ))}
 
-                <span className="sidebar-section-title" style={{ marginTop: 'auto' }}>Settings</span>
-                <button className="sidebar-link" onClick={toggleTheme}>
-                    {theme === 'dark' ? <Sun /> : <Moon />}
-                    <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                </button>
+                <span className="sidebar-section-title" style={{ marginTop: 'auto' }}>
+                    Account
+                </span>
                 <button className="sidebar-link" onClick={handleLogout}>
                     <LogOut />
                     <span>Logout</span>

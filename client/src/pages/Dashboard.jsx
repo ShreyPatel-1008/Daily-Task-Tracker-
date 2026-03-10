@@ -86,20 +86,26 @@ const Dashboard = () => {
         <div className="page-container">
             <div className="page-header">
                 <div>
-                    <h1>Welcome back, {user?.name?.split(' ')[0]} 👋</h1>
-                    <p className="page-header-subtitle">Here's your productivity overview</p>
+                    <h1>Overview</h1>
+                    <p className="page-header-subtitle">
+                        A snapshot of how you&apos;re tracking this week
+                    </p>
                 </div>
-                <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center' }}>
-                    {streak && (
-                        <div className="streak-card" style={{ padding: 'var(--space-4) var(--space-6)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                            <span style={{ fontSize: '1.5rem' }}>🔥</span>
-                            <div>
-                                <div className="streak-count" style={{ fontSize: 'var(--font-size-xl)' }}>{streak.currentStreak}</div>
-                                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>Day Streak</div>
+                {weekly && (
+                    <div className="productivity-score">
+                        <div className="score-circle">
+                            <span>{weekly.productivityScore ?? 0}</span>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>
+                                Productivity score
+                            </div>
+                            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: 4 }}>
+                                Based on completed vs created work this week
                             </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* Stats Grid */}

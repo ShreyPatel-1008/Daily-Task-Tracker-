@@ -68,66 +68,112 @@ const Tasks = () => {
                 </button>
             </div>
 
-            {/* Search & Filters */}
-            <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div className="search-bar" style={{ flex: '1', minWidth: '250px' }}>
-                    <Search size={18} />
-                    <input
-                        id="task-search"
-                        type="text"
-                        placeholder="Search tasks..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                    />
+            {/* Toolbar: search, filters, summary */}
+            <div className="card" style={{ marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="search-bar" style={{ flex: '1', minWidth: '260px' }}>
+                        <Search size={18} />
+                        <input
+                            id="task-search"
+                            type="text"
+                            placeholder="Search tasks by title or description..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                        <button
+                            className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setShowFilters(!showFilters)}
+                            type="button"
+                        >
+                            <ListFilter size={16} />
+                            Filters
+                        </button>
+                        {hasActiveFilters && (
+                            <button type="button" className="btn btn-ghost" onClick={clearFilters}>
+                                Clear all
+                            </button>
+                        )}
+                    </div>
                 </div>
-                <button className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setShowFilters(!showFilters)}>
-                    <ListFilter size={16} />
-                    Filters
-                </button>
-                {hasActiveFilters && (
-                    <button className="btn btn-ghost" onClick={clearFilters}>Clear all</button>
+
+                {showFilters && (
+                    <div className="filters-bar" style={{ animation: 'fadeInUp 0.2s ease' }}>
+                        <select
+                            className="form-select"
+                            value={filters.status}
+                            onChange={e => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                            style={{ width: 'auto', minWidth: '150px' }}
+                        >
+                            <option value="">All statuses</option>
+                            {STATUSES.map(s => (
+                                <option key={s} value={s}>{getStatusLabel(s)}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="form-select"
+                            value={filters.priority}
+                            onChange={e => setFilters(prev => ({ ...prev, priority: e.target.value }))}
+                            style={{ width: 'auto', minWidth: '150px' }}
+                        >
+                            <option value="">All priorities</option>
+                            {PRIORITIES.map(p => (
+                                <option key={p} value={p}>{p}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="form-select"
+                            value={filters.category}
+                            onChange={e => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                            style={{ width: 'auto', minWidth: '150px' }}
+                        >
+                            <option value="">All categories</option>
+                            {CATEGORIES.map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </div>
                 )}
-            </div>
 
-            {showFilters && (
-                <div className="filters-bar" style={{ marginBottom: 'var(--space-6)', animation: 'fadeInUp 0.2s ease' }}>
-                    <select className="form-select" value={filters.status}
-                        onChange={e => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                        style={{ width: 'auto', minWidth: '140px' }}>
-                        <option value="">All Statuses</option>
-                        {STATUSES.map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
-                    </select>
-                    <select className="form-select" value={filters.priority}
-                        onChange={e => setFilters(prev => ({ ...prev, priority: e.target.value }))}
-                        style={{ width: 'auto', minWidth: '140px' }}>
-                        <option value="">All Priorities</option>
-                        {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                    <select className="form-select" value={filters.category}
-                        onChange={e => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                        style={{ width: 'auto', minWidth: '140px' }}>
-                        <option value="">All Categories</option>
-                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                {/* Status Summary Chips */}
+                <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 'var(--font-size-xs)', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+                        Status overview
+                    </span>
+                    <span
+                        className="filter-chip"
+                        onClick={() => setFilters(prev => ({ ...prev, status: '' }))}
+                        style={
+                            !filters.status
+                                ? {
+                                    borderColor: 'var(--accent-primary)',
+                                    color: 'var(--accent-primary-light)',
+                                    background: 'rgba(108, 92, 231, 0.1)',
+                                }
+                                : {}
+                        }
+                    >
+                        All ({tasks.length})
+                    </span>
+                    {STATUSES.map(s => {
+                        const count = tasks.filter(t => t.status === s).length;
+                        return (
+                            <span
+                                key={s}
+                                className={`filter-chip ${filters.status === s ? 'active' : ''}`}
+                                onClick={() =>
+                                    setFilters(prev => ({
+                                        ...prev,
+                                        status: prev.status === s ? '' : s,
+                                    }))
+                                }
+                            >
+                                {getStatusLabel(s)} ({count})
+                            </span>
+                        );
+                    })}
                 </div>
-            )}
-
-            {/* Status Summary Chips */}
-            <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
-                <span className="filter-chip" onClick={() => setFilters(prev => ({ ...prev, status: '' }))}
-                    style={!filters.status ? { borderColor: 'var(--accent-primary)', color: 'var(--accent-primary-light)', background: 'rgba(108, 92, 231, 0.1)' } : {}}>
-                    All ({tasks.length})
-                </span>
-                {STATUSES.map(s => {
-                    const count = tasks.filter(t => t.status === s).length;
-                    return (
-                        <span key={s} className={`filter-chip ${filters.status === s ? 'active' : ''}`}
-                            onClick={() => setFilters(prev => ({ ...prev, status: prev.status === s ? '' : s }))}>
-                            {getStatusLabel(s)} ({count})
-                        </span>
-                    );
-                })}
             </div>
 
             {/* Task List */}

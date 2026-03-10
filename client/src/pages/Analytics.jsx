@@ -80,7 +80,17 @@ const Analytics = () => {
 
     return (
         <div className="page-container">
-            <div className="page-header"><div><h1>Analytics</h1><p className="page-header-subtitle">Deep dive into your productivity metrics</p></div></div>
+            <div className="page-header">
+                <div>
+                    <h1>Analytics</h1>
+                    <p className="page-header-subtitle">
+                        Understand how your work is trending over time
+                    </p>
+                </div>
+                <div className="badge badge-purple">
+                    Live · Last sync from TaskFlow API
+                </div>
+            </div>
 
             <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                 <div className="stat-card purple"><div className="stat-card-header"><span className="stat-card-label">Weekly Score</span><Target size={18} style={{ color: 'var(--accent-primary-light)' }} /></div><div className="stat-card-value">{weekly?.productivityScore || 0}%</div></div>
@@ -89,7 +99,14 @@ const Analytics = () => {
                 <div className="stat-card orange"><div className="stat-card-header"><span className="stat-card-label">Monthly Score</span><Calendar size={18} style={{ color: 'var(--color-warning)' }} /></div><div className="stat-card-value">{monthly?.productivityScore || 0}%</div></div>
             </div>
 
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.25rem' }}>📊 Weekly Analytics</h2>
+            {/* Weekly section */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-3)', marginTop: 'var(--space-8)', marginBottom: 'var(--space-3)' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Weekly overview</h2>
+                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                    How this week compares to your recent activity
+                </span>
+            </div>
+
             <div className="charts-grid">
                 <div className="chart-card"><div className="chart-card-header"><h3 className="chart-card-title">Completed vs Created</h3></div>
                     <ResponsiveContainer width="100%" height={300}><BarChart data={weekly?.weeklyData || []}><CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" /><XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} /><YAxis stroke="var(--text-muted)" fontSize={12} /><Tooltip content={<ChartTooltip />} /><Bar dataKey="completed" fill="#00b894" name="Completed" radius={[4, 4, 0, 0]} /><Bar dataKey="created" fill="#6c5ce7" name="Created" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
@@ -100,13 +117,23 @@ const Analytics = () => {
             </div>
 
             {focusHours && (
-                <div className="chart-card" style={{ marginBottom: '2rem' }}><div className="chart-card-header"><h3 className="chart-card-title">⏱️ Weekly Focus Hours</h3></div>
+                <div className="chart-card" style={{ marginBottom: '2rem' }}>
+                    <div className="chart-card-header">
+                        <h3 className="chart-card-title">⏱️ Weekly Focus Hours</h3>
+                        <span className="badge badge-info">Time spent in focused work</span>
+                    </div>
                     <ResponsiveContainer width="100%" height={260}><AreaChart data={focusHours.dailyFocus || []}><defs><linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00cec9" stopOpacity={0.3} /><stop offset="95%" stopColor="#00cec9" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" /><XAxis dataKey="day" stroke="var(--text-muted)" fontSize={12} /><YAxis stroke="var(--text-muted)" fontSize={12} /><Tooltip content={<ChartTooltip />} /><Area type="monotone" dataKey="hours" stroke="#00cec9" fill="url(#fg)" strokeWidth={2} name="Hours" /></AreaChart></ResponsiveContainer>
                 </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>📅 Monthly Analytics</h2>
+            {/* Monthly section */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: 'var(--space-8)', marginBottom: '1.25rem' }}>
+                <div>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Monthly trends</h2>
+                    <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                        Zoom out to see longer-term patterns in your work
+                    </p>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
                     <button className="btn btn-ghost btn-icon" onClick={() => navMonth(-1)}><ChevronLeft size={18} /></button>
                     <span style={{ fontSize: '0.875rem', fontWeight: 600, minWidth: 140, textAlign: 'center' }}>{months[selMonth]} {selYear}</span>

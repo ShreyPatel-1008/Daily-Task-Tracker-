@@ -182,9 +182,106 @@ body {
 
 .main-content {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin-left: 0;
   min-height: 100vh;
   transition: margin-left var(--transition-base);
+}
+
+.main-scroll {
+  min-height: 100vh;
+}
+
+.app-layout.sidebar-open .main-content {
+  margin-left: var(--sidebar-width);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-8);
+  backdrop-filter: blur(18px);
+  background: linear-gradient(
+    135deg,
+    rgba(15, 15, 35, 0.96),
+    rgba(15, 15, 35, 0.9)
+  );
+  border-bottom: 1px solid var(--border-light);
+}
+
+[data-theme='light'] .topbar {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(245, 246, 250, 0.96)
+  );
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.topbar-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.topbar-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.topbar-menu {
+  display: inline-flex;
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+}
+
+.topbar-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-inverse);
+}
+
+.topbar-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar-user-name {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.topbar-user-email {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
 }
 
 .page-container {
@@ -320,6 +417,11 @@ body {
   flex-direction: column;
   z-index: 1000;
   transition: all var(--transition-base);
+  transform: translateX(-100%);
+}
+
+.sidebar.open {
+  transform: translateX(0);
 }
 
 .sidebar-logo {
@@ -1536,16 +1638,20 @@ body {
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
+  .topbar {
+    padding: var(--space-3) var(--space-4);
   }
 
-  .sidebar.open {
-    transform: translateX(0);
+  .topbar-title {
+    font-size: var(--font-size-base);
   }
 
-  .main-content {
-    margin-left: 0;
+  .topbar-subtitle {
+    display: none;
+  }
+
+  .topbar-user-info {
+    display: none;
   }
 
   .page-container {

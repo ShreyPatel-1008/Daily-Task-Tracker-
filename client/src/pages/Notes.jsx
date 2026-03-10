@@ -87,11 +87,19 @@ const Notes = () => {
                 </button>
             </div>
 
-            {/* Search */}
-            <div style={{ marginBottom: 'var(--space-6)' }}>
-                <div className="search-bar" style={{ maxWidth: '400px' }}>
+            {/* Search / toolbar */}
+            <div className="card" style={{ marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div className="search-bar" style={{ maxWidth: '420px' }}>
                     <Search size={18} />
-                    <input type="text" placeholder="Search notes..." value={search} onChange={e => setSearch(e.target.value)} />
+                    <input
+                        type="text"
+                        placeholder="Search by title or content..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                    Use notes for meeting minutes, ideas, or scratchpad thoughts. Pinned notes stay on top.
                 </div>
             </div>
 
