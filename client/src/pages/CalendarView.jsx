@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import API from '../utils/api';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { getStatusClass, getStatusLabel, getPriorityClass, formatDate } from '../utils/helpers';
+import { ChevronLeft, ChevronRight, CheckCircle, Circle, Clock, RefreshCw } from 'lucide-react';
+import { getStatusClass, getStatusLabel, getPriorityClass } from '../utils/helpers';
 
 const CalendarView = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [tasks, setTasks] = useState([]);
-    const [selectedDay, setSelectedDay] = useState(null);
+    const [dailyHistory, setDailyHistory] = useState([]);
+    const [selectedDay, setSelectedDay] = useState(new Date().getDate());
     const [loading, setLoading] = useState(true);
 
     const year = currentDate.getFullYear();
@@ -14,16 +15,30 @@ const CalendarView = () => {
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
     useEffect(() => {
-        const fetchTasks = async () => {
+        const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await API.get('/tasks', { params: { limit: 500 } });
-                setTasks(res.data.tasks);
+                const [tasksRes, historyRes] = await Promise.all([
+                    API.get('/tasks', { params: { limit: 500 } }),
+                    API.get('/tasks/daily-history', {
+                        params: { days: 60 }
+                    }).catch(() => ({ data: { history: [] } }))
+                ]);
+                setTasks(tasksRes.data.tasks);
+                // Flatten grouped history into individual task records
+                const grouped = historyRes.data.history || [];
+                const flat = [];
+                grouped.forEach(group => {
+                    (group.tasks || []).forEach(t => {
+                        flat.push({ ...t, date: group.date });
+                    });
+                });
+                setDailyHistory(flat);
             } catch (err) { console.error(err); }
             finally { setLoading(false); }
         };
-        fetchTasks();
-    }, []);
+        fetchData();
+    }, [year, month]);
 
     const navigateMonth = (dir) => {
         const d = new Date(currentDate);
@@ -41,86 +56,245 @@ const CalendarView = () => {
         return days;
     };
 
+    const today = new Date();
+    const todayDay = today.getDate();
+    const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
+    const isToday = (day) => day && isCurrentMonth && todayDay === day;
+
+    const isFutureDay = (day) => {
+        if (!day) return false;
+        const dayDate = new Date(year, month, day);
+        const todayStart = new Date(today);
+        todayStart.setHours(0, 0, 0, 0);
+        return dayDate > todayStart;
+    };
+
+    const isPastDay = (day) => {
+        if (!day) return false;
+        const dayDate = new Date(year, month, day);
+        const todayStart = new Date(today);
+        todayStart.setHours(0, 0, 0, 0);
+        return dayDate < todayStart;
+    };
+
+    // For today: show all daily tasks with current status
+    // For past days: show DailyHistory data
+    // For future days: show daily tasks as "upcoming"
     const getTasksForDay = (day) => {
         if (!day) return [];
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        return tasks.filter(t => {
-            const created = t.createdAt?.split('T')[0];
-            const due = t.dueDate?.split('T')[0];
-            const completed = t.completedAt?.split('T')[0];
-            return created === dateStr || due === dateStr || completed === dateStr;
-        });
+
+        if (isToday(day)) {
+            // Today: show all daily tasks with their current live status
+            return tasks.filter(t => t.isDaily).map(t => ({
+                _id: t._id,
+                title: t.title,
+                status: t.status,
+                priority: t.priority,
+                category: t.category,
+                isLive: true
+            }));
+        } else if (isPastDay(day)) {
+            // Past: show from DailyHistory
+            return dailyHistory
+                .filter(h => {
+                    const histDate = h.date?.split('T')[0];
+                    return histDate === dateStr;
+                })
+                .map(h => ({
+                    _id: h._id,
+                    title: h.taskTitle,
+                    status: h.wasCompleted ? 'COMPLETED' : h.status || 'NOT_STARTED',
+                    category: h.category,
+                    priority: 'MEDIUM',
+                    isHistory: true
+                }));
+        } else if (isFutureDay(day)) {
+            // Future: show daily tasks as upcoming / not started
+            return tasks.filter(t => t.isDaily).map(t => ({
+                _id: t._id,
+                title: t.title,
+                status: 'NOT_STARTED',
+                priority: t.priority,
+                category: t.category,
+                isFuture: true
+            }));
+        }
+
+        return [];
+    };
+
+    // Count tasks that have dots on the calendar
+    const getTaskCountForDay = (day) => {
+        return getTasksForDay(day).length;
+    };
+
+    // Completion percentage for a day
+    const getCompletionForDay = (day) => {
+        const dayTasks = getTasksForDay(day);
+        if (dayTasks.length === 0) return -1;
+        const completed = dayTasks.filter(t => t.status === 'COMPLETED').length;
+        return Math.round((completed / dayTasks.length) * 100);
+    };
+
+    const getDotColor = (day) => {
+        const pct = getCompletionForDay(day);
+        if (pct === -1) return null;
+        if (pct >= 80) return 'var(--color-success)';
+        if (pct >= 40) return 'var(--color-warning)';
+        return 'var(--color-danger)';
     };
 
     const days = getDaysInMonth();
-    const today = new Date();
-    const isToday = (day) => day && today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
     const dayTasks = selectedDay ? getTasksForDay(selectedDay) : [];
+    const completion = selectedDay ? getCompletionForDay(selectedDay) : -1;
+
+    const statusIcon = (status) => {
+        if (status === 'COMPLETED') return <CheckCircle size={14} style={{ color: 'var(--color-success)' }} />;
+        if (status === 'IN_PROGRESS') return <Clock size={14} style={{ color: 'var(--color-warning)' }} />;
+        return <Circle size={14} style={{ color: 'var(--text-muted)' }} />;
+    };
 
     return (
         <div className="page-container">
             <div className="page-header">
-                <div><h1>Calendar</h1><p className="page-header-subtitle">View your tasks on a calendar</p></div>
+                <div>
+                    <h1>Calendar</h1>
+                    <p className="page-header-subtitle">Track your daily task completion over time</p>
+                </div>
+                {isCurrentMonth && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+                        padding: 'var(--space-2) var(--space-4)', borderRadius: 'var(--radius-full)',
+                        background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                        fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)'
+                    }}>
+                        <RefreshCw size={14} />
+                        Daily tasks reset at 4:00 AM
+                    </div>
+                )}
             </div>
 
-            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
                 {/* Calendar Grid */}
                 <div className="card" style={{ flex: '1', minWidth: '320px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-6)' }}>
                         <button className="btn btn-ghost btn-icon" onClick={() => navigateMonth(-1)}><ChevronLeft size={18} /></button>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{monthNames[month]} {year}</h3>
+                        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700 }}>{monthNames[month]} {year}</h3>
                         <button className="btn btn-ghost btn-icon" onClick={() => navigateMonth(1)}><ChevronRight size={18} /></button>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center' }}>
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                            <div key={d} style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{d}</div>
+                            <div key={d} style={{ padding: 'var(--space-2)', fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{d}</div>
                         ))}
                         {days.map((day, i) => {
-                            const dayTaskCount = day ? getTasksForDay(day).length : 0;
+                            const taskCount = day ? getTaskCountForDay(day) : 0;
+                            const dotColor = getDotColor(day);
+                            const selected = selectedDay === day;
                             return (
                                 <div key={i} onClick={() => day && setSelectedDay(day)} style={{
-                                    padding: '0.5rem', minHeight: '52px', borderRadius: '8px', cursor: day ? 'pointer' : 'default',
-                                    background: selectedDay === day ? 'rgba(108,92,231,0.15)' : isToday(day) ? 'rgba(108,92,231,0.08)' : 'transparent',
-                                    border: isToday(day) ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                                    padding: 'var(--space-2)', minHeight: '60px', borderRadius: 'var(--radius-md)',
+                                    cursor: day ? 'pointer' : 'default',
+                                    background: selected ? 'rgba(108,92,231,0.15)' : isToday(day) ? 'rgba(108,92,231,0.06)' : 'transparent',
+                                    border: isToday(day) ? '1.5px solid var(--accent-primary)' : selected ? '1.5px solid rgba(108,92,231,0.3)' : '1px solid transparent',
                                     transition: 'all 150ms ease',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                                    opacity: isFutureDay(day) ? 0.5 : 1
                                 }}>
-                                    {day && <span style={{ fontSize: '0.875rem', fontWeight: isToday(day) ? 700 : 400, color: isToday(day) ? 'var(--accent-primary-light)' : 'var(--text-primary)' }}>{day}</span>}
-                                    {dayTaskCount > 0 && <div style={{ display: 'flex', gap: '2px' }}>
-                                        {dayTaskCount <= 3 ? Array.from({ length: dayTaskCount }).map((_, j) => (
-                                            <div key={j} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent-primary)' }} />
-                                        )) : <span style={{ fontSize: '0.65rem', color: 'var(--accent-primary-light)', fontWeight: 600 }}>{dayTaskCount}</span>}
-                                    </div>}
+                                    {day && <span style={{
+                                        fontSize: 'var(--font-size-sm)', fontWeight: isToday(day) ? 700 : 400,
+                                        color: isToday(day) ? 'var(--accent-primary-light)' : 'var(--text-primary)'
+                                    }}>{day}</span>}
+                                    {taskCount > 0 && dotColor && !isFutureDay(day) && (
+                                        <div style={{
+                                            width: '8px', height: '8px', borderRadius: '50%',
+                                            background: dotColor, transition: 'all 200ms ease'
+                                        }} />
+                                    )}
                                 </div>
                             );
                         })}
                     </div>
+
+                    {/* Legend */}
+                    <div style={{ display: 'flex', gap: 'var(--space-4)', justifyContent: 'center', marginTop: 'var(--space-5)', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-success)', display: 'inline-block' }} /> 80%+</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-warning)', display: 'inline-block' }} /> 40-79%</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-danger)', display: 'inline-block' }} /> &lt;40%</span>
+                    </div>
                 </div>
 
-                {/* Selected Day Tasks */}
-                <div style={{ flex: '0 0 340px', minWidth: '280px' }}>
-                    <div className="card">
-                        <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>
-                            {selectedDay ? `${monthNames[month]} ${selectedDay}, ${year}` : 'Select a day'}
-                        </h3>
+                {/* Selected Day Panel */}
+                <div style={{ flex: '0 0 360px', minWidth: '300px' }}>
+                    <div className="card" style={{ position: 'sticky', top: 'calc(var(--header-height) + var(--space-4))' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
+                            <h3 style={{ fontSize: 'var(--font-size-base)', fontWeight: 700 }}>
+                                {selectedDay ? `${monthNames[month]} ${selectedDay}, ${year}` : 'Select a day'}
+                            </h3>
+                            {selectedDay && isToday(selectedDay) && (
+                                <span style={{
+                                    fontSize: 'var(--font-size-xs)', padding: '2px 8px',
+                                    borderRadius: 'var(--radius-full)', background: 'var(--accent-primary)',
+                                    color: 'var(--text-inverse)', fontWeight: 600
+                                }}>Today</span>
+                            )}
+                        </div>
+
+                        {/* Completion bar */}
+                        {selectedDay && dayTasks.length > 0 && (
+                            <div style={{ marginBottom: 'var(--space-4)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                    <span>{dayTasks.filter(t => t.status === 'COMPLETED').length} / {dayTasks.length} completed</span>
+                                    <span>{completion}%</span>
+                                </div>
+                                <div style={{ width: '100%', height: 6, background: 'var(--border-color)', borderRadius: 'var(--radius-full)' }}>
+                                    <div style={{
+                                        width: `${completion}%`, height: '100%',
+                                        background: completion >= 80 ? 'var(--color-success)' : completion >= 40 ? 'var(--color-warning)' : 'var(--color-danger)',
+                                        borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease'
+                                    }} />
+                                </div>
+                            </div>
+                        )}
+
                         {selectedDay ? (
                             dayTasks.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                                     {dayTasks.map(t => (
-                                        <div key={t._id} style={{ padding: '0.75rem', background: 'var(--bg-input)', borderRadius: '8px', borderLeft: `3px solid ${t.priority === 'HIGH' ? 'var(--color-danger)' : t.priority === 'MEDIUM' ? 'var(--color-warning)' : 'var(--color-success)'}` }}>
-                                            <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>{t.title}</div>
-                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                                <span className={`status-badge ${getStatusClass(t.status)}`}>
-                                                    <span className="status-dot" />{getStatusLabel(t.status)}
-                                                </span>
-                                                <span className={`priority-badge ${getPriorityClass(t.priority)}`}>{t.priority}</span>
+                                        <div key={t._id} style={{
+                                            padding: 'var(--space-3) var(--space-4)', background: 'var(--bg-input)',
+                                            borderRadius: 'var(--radius-md)',
+                                            borderLeft: `3px solid ${t.status === 'COMPLETED' ? 'var(--color-success)' : t.status === 'IN_PROGRESS' ? 'var(--color-warning)' : 'var(--border-color)'}`,
+                                            display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                                            opacity: t.isFuture ? 0.6 : 1,
+                                            transition: 'all 150ms ease'
+                                        }}>
+                                            {statusIcon(t.status)}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{
+                                                    fontSize: 'var(--font-size-sm)', fontWeight: 600,
+                                                    textDecoration: t.status === 'COMPLETED' ? 'line-through' : 'none',
+                                                    color: t.status === 'COMPLETED' ? 'var(--text-muted)' : 'var(--text-primary)',
+                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                                                }}>{t.title}</div>
+                                                {t.category && (
+                                                    <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>{t.category}</div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                            ) : <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No tasks for this day</p>
-                        ) : <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Click on a day to see tasks</p>}
+                            ) : (
+                                <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)', textAlign: 'center', padding: 'var(--space-6) 0' }}>
+                                    {isPastDay(selectedDay) ? 'No history recorded for this day' : 'No daily tasks set up yet'}
+                                </p>
+                            )
+                        ) : (
+                            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)', textAlign: 'center', padding: 'var(--space-6) 0' }}>
+                                Click on a day to view tasks
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
