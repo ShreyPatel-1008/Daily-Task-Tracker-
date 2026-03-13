@@ -1634,7 +1634,7 @@ body {
 
 /* ===== Auth Pages ===== */
 .auth-container {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1671,9 +1671,9 @@ body {
   backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
-  padding: var(--space-10);
+  padding: var(--space-6) var(--space-8);
   width: 100%;
-  max-width: 440px;
+  max-width: 420px;
   position: relative;
   z-index: 1;
   animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1685,12 +1685,12 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-4);
 }
 
 .auth-logo-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   background: var(--gradient-primary);
   border-radius: var(--radius-md);
   display: flex;
@@ -1720,7 +1720,7 @@ body {
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   text-align: center;
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-4);
 }
 
 .auth-footer {
